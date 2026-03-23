@@ -14,7 +14,7 @@ SAFE_MODE=true # Enable/Disable safe mode (UNSAFE DELETE FILES FROM SONGS_DIR)
 SHOW_ALL=false # Better dont touch it:)
 ```
 
-## Run
+## Before run script
 Enable storage:
 ```bash
 termux-setup-storage
