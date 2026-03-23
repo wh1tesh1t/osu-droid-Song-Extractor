@@ -2,7 +2,8 @@
 
 ## Clone
 ```bash
-git clone https://github.com/wh1tesh1t/osu-droid-Song-Extractor```
+git clone https://github.com/wh1tesh1t/osu-droid-Song-Extractor
+```
 
 ```bash
 # config from osus.sh
@@ -16,7 +17,9 @@ SHOW_ALL=false # Better dont touch it:)
 ## Run
 Enable storage:
 ```bash
-termux-setup-storage```
+termux-setup-storage
+```
 
 ```bash
-bash osus.sh```
+bash osus.sh
+```
