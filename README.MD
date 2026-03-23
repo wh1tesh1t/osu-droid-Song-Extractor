@@ -20,6 +20,7 @@ Enable storage:
 termux-setup-storage
 ```
 
+## Run
 ```bash
 bash osus.sh
 ```

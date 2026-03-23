@@ -20,6 +20,7 @@ if ! command -v awk &> /dev/null; then
     exit 1
 fi
 
+# Check if directory valid
 if [ ! -d "$SONGS_DIR" ]; then
     echo "Directory $SONGS_DIR not found"
     exit 1
@@ -62,7 +63,7 @@ for song_dir in "$SONGS_DIR"/*/; do
                 echo "[OK] ${folder_name} | ${file_size}byte"
                 ((count++))
             else
-                echo "[FAIL] Failed move songs from ${folder_name}"
+                echo "[FAIL] Failed move song from ${folder_name}"
             fi
         else
             if [ "$SHOW_ALL" = true ]; then
