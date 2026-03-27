@@ -2,11 +2,15 @@
 
 ## Clone
 ```bash
+pkg install git
+```
+```bash
 git clone https://github.com/wh1tesh1t/osu-droid-Song-Extractor
 ```
 
 ```bash
 # config from osus.sh
+GITHUB_LINK="wh1tesh1t"
 SONGS_DIR="/storage/emulated/0/osu!droid/Songs"
 OUTPUT_DIR="/storage/emulated/0/osu!droid_songs"
 MAX_SIZE_MB=35.0 # No need desc <_>

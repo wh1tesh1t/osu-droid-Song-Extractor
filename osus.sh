@@ -179,7 +179,7 @@ for song_dir in "$SONGS_DIR"/*/; do
             dest_path="${OUTPUT_DIR}/${new_filename}"
 
             if cduplicate "$new_filename" "$dest_path"; then
-                echo -e "${OSUS_PINK}[DUP]${OSUS_RESET} ${folder_name} File already exists"
+                echo -e "${OSUS_PINK}[DUP]${OSUS_RESET} ${folder_name} | File already exists"
                 ((duplicates++))
                 continue
             fi
