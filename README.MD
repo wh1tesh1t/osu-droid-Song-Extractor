@@ -14,7 +14,22 @@ SAFE_MODE=true # Enable/Disable safe mode (UNSAFE DELETE FILES FROM SONGS_DIR)
 SHOW_ALL=false # Better dont touch it:)
 ```
 
-## Before run script
+```bash
+# Arguments (FROM FILE):
+# -ls — Scan $SONGS_DIR for available songs
+# -debug — Enable debug mode
+# -d — $SONGS_DIR
+# -o — $OUTPUT_DIR
+# -s — Sets file size limit $MAX_SIZE_MB
+# -sf — Enable/Disable SAFE_MODE req dont touch it, only for pros (coz he deleting files from $SONGS_DIR)
+```
+
+## Before run the script
+Update termux packages:
+```bash
+apt update && apt upgrade && pkg update && pkg upgrade
+```
+
 Enable storage:
 ```bash
 termux-setup-storage
