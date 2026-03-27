@@ -14,6 +14,7 @@ OUTPUT_DIR="/storage/emulated/0/osu!droid_songs"
 MAX_SIZE_MB=35.0
 SAFE_MODE=true
 SHOW_ALL=false
+LOG_FILE="osus.log"
 # ======================
 
 # === Colors ===
@@ -22,6 +23,7 @@ OSUS_RESET='\033[0m'
 
 # === Arguments ===
 ACTION="PROCESS"
+DEBUG_MODE=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         -ls)
@@ -49,6 +51,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -debug)
+            DEBUG_MODE=true
             SHOW_ALL=true
             shift
             ;;
@@ -59,20 +62,41 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+ENABLE_LOG=false
+if [ "$DEBUG_MODE" = true ] || [ -n "$LOG_FILE" ]; then
+    ENABLE_LOG=true
+    log_dir=$(dirname "$LOG_FILE")
+    if [ "$log_dir" != "." ] && [ ! -d "$log_dir" ]; then
+        mkdir -p "$log_dir" 2>/dev/null
+    fi
+    echo "=== osus!droid extractor log started: $(date) ===" > "$LOG_FILE" 2>/dev/null
+fi
+
+log_msg() {
+    local level="$1"
+    local message="$2"
+    if [ "$ENABLE_LOG" = true ] && [ -n "$LOG_FILE" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [$level] $message" >> "$LOG_FILE" 2>/dev/null
+    fi
+}
+
 # Check utils
 if ! command -v stat &> /dev/null; then
     echo -e "${OSUS_PINK}Util: [stat] not found${OSUS_RESET}"
+    log_msg "ERROR" "Util: [stat] not found"
     exit 1
 fi
 
 if ! command -v awk &> /dev/null; then
     echo -e "${OSUS_PINK}Util: [awk] not found${OSUS_RESET}"
+    log_msg "ERROR" "Util: [awk] not found"
     exit 1
 fi
 
 # Check if directory valid
 if [ ! -d "$SONGS_DIR" ]; then
     echo -e "${OSUS_PINK}Directory $SONGS_DIR not found${OSUS_RESET}"
+    log_msg "ERROR" "Directory $SONGS_DIR not found"
     exit 1
 fi
 
@@ -89,50 +113,92 @@ cduplicate() {
     return 1
 }
 
+csuslare() {
+    local folder_name="$1"
+    local output_dir="$2"
+    
+    if ls "$output_dir" 2>/dev/null | grep -qi "${folder_name}"; then
+        return 0
+    fi
+    return 1
+}
+
+gaudiof() {
+    local song_dir="$1"
+    local osu_file=""
+    
+    for file in "$song_dir"*.osu; do
+        if [ -f "$file" ]; then
+            osu_file="$file"
+            break
+        fi
+    done
+    
+    if [ -z "$osu_file" ] || [ ! -f "$osu_file" ]; then
+        echo ""
+        return 1
+    fi
+    
+    local audio_filename=$(grep -i "^AudioFilename:" "$osu_file" | head -n 1 | cut -d':' -f2- | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    
+    echo "$audio_filename"
+}
+
 if [ "$ACTION" = "LIST" ]; then
     echo -e "${OSUS_PINK}Scanning for available songs in: $SONGS_DIR${OSUS_RESET}"
     echo -e "Limit: ${MAX_SIZE_MB}MB (${MAX_SIZE_BYTES} bytes)"
+    log_msg "INFO" "Scanning $SONGS_DIR with limit ${MAX_SIZE_MB}MB"
     echo "---------------------------------------------"
     
-    count=0
+    foundc=0
     for song_dir in "$SONGS_DIR"/*/; do
-        audio_file_mp3="${song_dir}audio.mp3"
-        audio_file_ogg="${song_dir}audio.ogg"
-        target_file=""
-        ext=""
+        audio_filename=$(gaudiof "$song_dir")
         
-        if [ -f "$audio_file_mp3" ]; then
-            target_file="$audio_file_mp3"
-            ext="mp3"
-        elif [ -f "$audio_file_ogg" ]; then
-            target_file="$audio_file_ogg"
-            ext="ogg"
-        fi
-
-        if [ -n "$target_file" ] && [ -f "$target_file" ]; then
-            file_size=$(stat -c%s "$target_file")
-            folder_name=$(basename "$song_dir")
+        if [ -n "$audio_filename" ]; then
+            audio_file="${song_dir}${audio_filename}"
             
-            if [ "$file_size" -le "$MAX_SIZE_BYTES" ]; then
-                new_filename="${folder_name}_osu!droid.${ext}"
-                dest_path="${OUTPUT_DIR}/${new_filename}"
+            if [ -f "$audio_file" ]; then
+                file_size=$(stat -c%s "$audio_file")
+                folder_name=$(basename "$song_dir")
+                ext="${audio_filename##*.}"
                 
-                status="[OK]"
-                if cduplicate "$new_filename" "$dest_path"; then
-                    status="[DUP]"
+                if [ "$file_size" -le "$MAX_SIZE_BYTES" ]; then
+                    new_filename="${folder_name}_osu!droid.${ext}"
+                    dest_path="${OUTPUT_DIR}/${new_filename}"
+                    
+                    status="[OK]"
+                    if cduplicate "$new_filename" "$dest_path"; then
+                        status="[DUP]"
+                    elif csuslare "$folder_name" "$OUTPUT_DIR"; then
+                        status="[SUS]"
+                    fi
+                    
+                    echo -e "${status} ${OSUS_PINK}${folder_name}.${ext}${OSUS_RESET} | ${file_size} byte | ${audio_filename}"
+                    log_msg "INFO" "Found: ${folder_name}.${ext} | ${file_size} byte | ${audio_filename}"
+                    ((foundc++))
+                else
+                    if [ "$SHOW_ALL" = true ]; then
+                        echo -e "[SKIP] ${folder_name}.${ext} | ${file_size} byte | ${audio_filename}"
+                        log_msg "SKIP" "Too large: ${folder_name}.${ext} | ${file_size} byte"
+                    fi
                 fi
-                
-                echo -e "${status} ${OSUS_PINK}${folder_name}.${ext}${OSUS_RESET} | ${file_size} byte"
-                ((count++))
             else
                 if [ "$SHOW_ALL" = true ]; then
-                    echo -e "[SKIP] ${folder_name}.${ext} | ${file_size} byte"
+                    echo -e "[ERR] ${OSUS_PINK}${folder_name}${OSUS_RESET} | not found audio: ${audio_filename}"
                 fi
+                log_msg "ERROR" "not found audio: ${folder_name} -> ${audio_filename}"
             fi
+        else
+            if [ "$SHOW_ALL" = true ]; then
+                folder_name=$(basename "$song_dir")
+                echo -e "[ERR] ${OSUS_PINK}${folder_name}${OSUS_RESET} | .osu file or AudioFilename not found"
+            fi
+            log_msg "ERROR" ".osu file or AudioFilename: $(basename "$song_dir")"
         fi
     done
     echo "---------------------------------------------"
-    echo -e "Total available files: ${OSUS_PINK}$count${OSUS_RESET}"
+    echo -e "Total available files: ${OSUS_PINK}$foundc${OSUS_RESET}"
+    log_msg "INFO" "$foundc files found"
     exit 0
 fi
 
@@ -147,65 +213,86 @@ echo -e "${OSUS_PINK}Directory:${OSUS_RESET} $SONGS_DIR"
 echo -e "${OSUS_PINK}Output:${OSUS_RESET} $OUTPUT_DIR"
 echo -e "${OSUS_PINK}SizeLimit:${OSUS_RESET} ${MAX_SIZE_MB}mb - ${MAX_SIZE_BYTES}byte"
 echo -e "${OSUS_PINK}Mode:${OSUS_RESET} $([ "$SAFE_MODE" = true ] && echo 'SAFE' || echo 'UNSAFE')"
-echo -e "${OSUS_PINK}Debug:${OSUS_RESET} $SHOW_ALL"
 echo "---------------------------------------------"
 
-count=0
+log_msg "INFO" "SONGS_DIR=$SONGS_DIR, OUTPUT_DIR=$OUTPUT_DIR, MAX_SIZE=${MAX_SIZE_MB}MB, SAFE_MODE=$SAFE_MODE"
+
+foundc=0
 total=0
 skipped=0
 duplicates=0
+suslare=0
+errors=0
 
 for song_dir in "$SONGS_DIR"/*/; do
-    audio_file_mp3="${song_dir}audio.mp3"
-    audio_file_ogg="${song_dir}audio.ogg"
-    audio_file=""
-    ext=""
+    audio_filename=$(gaudiof "$song_dir")
+    
+    if [ -n "$audio_filename" ]; then
+        audio_file="${song_dir}${audio_filename}"
+        
+        if [ -f "$audio_file" ]; then
+            ((total++))
+            file_size=$(stat -c%s "$audio_file")
+            folder_name=$(basename "$song_dir")
+            ext="${audio_filename##*.}"
 
-    if [ -f "$audio_file_mp3" ]; then
-        audio_file="$audio_file_mp3"
-        ext="mp3"
-    elif [ -f "$audio_file_ogg" ]; then
-        audio_file="$audio_file_ogg"
-        ext="ogg"
-    fi
+            if [ "$file_size" -le "$MAX_SIZE_BYTES" ]; then
+                new_filename="${folder_name}_osu!droid.${ext}"
+                dest_path="${OUTPUT_DIR}/${new_filename}"
 
-    if [ -n "$audio_file" ] && [ -f "$audio_file" ]; then
-        ((total++))
-        file_size=$(stat -c%s "$audio_file")
-        folder_name=$(basename "$song_dir")
+                if cduplicate "$new_filename" "$dest_path"; then
+                    echo -e "${OSUS_PINK}[DUP]${OSUS_RESET} ${folder_name} | File already exists"
+                    log_msg "DUP" "File exists: ${new_filename}"
+                    ((duplicates++))
+                    continue
+                fi
 
-        if [ "$file_size" -le "$MAX_SIZE_BYTES" ]; then
-            new_filename="${folder_name}_osu!droid.${ext}"
-            dest_path="${OUTPUT_DIR}/${new_filename}"
+                if csuslare "$folder_name" "$OUTPUT_DIR"; then
+                    echo -e "${OSUS_PINK}[SUS]${OSUS_RESET} ${folder_name} | suslare found"
+                    log_msg "SUS" "suslare: ${folder_name}"
+                    ((suslare++))
+                    continue
+                fi
 
-            if cduplicate "$new_filename" "$dest_path"; then
-                echo -e "${OSUS_PINK}[DUP]${OSUS_RESET} ${folder_name} | File already exists"
-                ((duplicates++))
-                continue
-            fi
+                if [ "$SAFE_MODE" = true ]; then
+                    cp "$audio_file" "$dest_path"
+                else
+                    mv "$audio_file" "$dest_path"
+                fi
 
-            if [ "$SAFE_MODE" = true ]; then
-                cp "$audio_file" "$dest_path"
+                if [ $? -eq 0 ]; then
+                    echo -e "[OK] ${OSUS_PINK}${folder_name}${OSUS_RESET} | ${file_size}byte | ${audio_filename}"
+                    log_msg "OK" "Processed: ${folder_name} | ${file_size}byte | ${audio_filename}"
+                    ((foundc++))
+                else
+                    echo -e "${OSUS_PINK}[FAIL] Failed move song from ${folder_name}${OSUS_RESET}"
+                    log_msg "ERROR" "Failed to copy or move: ${folder_name} -> ${dest_path}"
+                fi
             else
-                mv "$audio_file" "$dest_path"
-            fi
-
-            if [ $? -eq 0 ]; then
-                echo -e "[OK] ${OSUS_PINK}${folder_name}${OSUS_RESET} | ${file_size}byte"
-                ((count++))
-            else
-                echo -e "${OSUS_PINK}[FAIL] Failed move song from ${folder_name}${OSUS_RESET}"
+                if [ "$SHOW_ALL" = true ]; then
+                    echo -e "[SKIP] ${folder_name} | ${file_size}byte | ${audio_filename}"
+                fi
+                log_msg "SKIP" "Too large: ${folder_name} | ${file_size}byte"
+                ((skipped++))
             fi
         else
-            if [ "$SHOW_ALL" = true ]; then
-                echo -e "[SKIP] ${folder_name} | ${file_size}byte"
-            fi
-            ((skipped++))
+            folder_name=$(basename "$song_dir")
+            echo -e "${OSUS_PINK}[ERR]${OSUS_RESET} ${folder_name} | not found audio: ${audio_filename}"
+            log_msg "ERROR" "not found audio: ${folder_name} -> ${audio_filename}"
+            ((errors++))
         fi
+    else
+        folder_name=$(basename "$song_dir")
+        echo -e "${OSUS_PINK}[ERR]${OSUS_RESET} ${folder_name} | .osu file or AudioFilename not found"
+        log_msg "ERROR" ".osu file or AudioFilename: ${folder_name}"
+        ((errors++))
     fi
 done
 
 echo "---------------------------------------------"
 echo -e "Total found maps: ${OSUS_PINK}$total${OSUS_RESET}"
-echo -e "Songs Count: ${OSUS_PINK}$count${OSUS_RESET}"
-echo -e "Skipped/Duplicates: ${OSUS_PINK}$skipped / $duplicates${OSUS_RESET}"
+echo -e "Songs Count: ${OSUS_PINK}$foundc${OSUS_RESET}"
+echo -e "Skipped/Duplicates/Suslares: ${OSUS_PINK}$skipped / $duplicates / $suslare${OSUS_RESET}"
+echo -e "Errors: ${OSUS_PINK}$errors${OSUS_RESET}"
+
+log_msg "INFO" "total=$total, foundc=$foundc, skipped=$skipped, dup=$duplicates, sus=$suslare, errors=$errors"
