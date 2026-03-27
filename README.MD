@@ -16,6 +16,7 @@ OUTPUT_DIR="/storage/emulated/0/osu!droid_songs"
 MAX_SIZE_MB=35.0 # No need desc <_>
 SAFE_MODE=true # Enable/Disable safe mode (UNSAFE DELETE FILES FROM SONGS_DIR)
 SHOW_ALL=false # Better dont touch it:)
+LOG_FILE="osus.log"
 ```
 
 ```bash
