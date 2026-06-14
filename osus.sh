@@ -12,14 +12,40 @@ GITHUB_LINK="wh1tesh1t"
 SONGS_DIR="/storage/emulated/0/osu!droid/Songs"
 OUTPUT_DIR="/storage/emulated/0/osu!droid_songs"
 MAX_SIZE_MB=35.0
+SCLEAR_TIME=2
 SAFE_MODE=true
-SHOW_ALL=false
+SHOW_ALL=true
 LOG_FILE="osus.log"
 # ======================
 
-# === Colors ===
-OSUS_PINK='\033[38;5;206m'
+# === Main colors ===
+OSUS_PINK='\033[38;5;205m'
 OSUS_RESET='\033[0m'
+# === Other colors (extra) ===
+OSUS_COLOR_1="\033[38;5;245m"
+OSUS_COLOR_2='\033[38;5;235m'
+OSUS_COLOR_3='\033[38;5;225m'
+OSUS_COLOR_4='\033[38;5;215m'
+OSUS_COLOR_5='\033[38;5;195m'
+OSUS_COLOR_6='\033[38;5;185m'
+OSUS_COLOR_7='\033[38;5;175m'
+OSUS_COLOR_8='\033[38;5;165m'
+OSUS_COLOR_9='\033[38;5;155m'
+OSUS_COLOR_10='\033[38;5;145m'
+OSUS_COLOR_11='\033[38;5;135m'
+OSUS_COLOR_12='\033[38;5;125m'
+OSUS_COLOR_13='\033[38;5;115m'
+OSUS_COLOR_14='\033[38;5;105m'
+OSUS_COLOR_15='\033[38;5;95m'
+OSUS_COLOR_16='\033[38;5;85m'
+OSUS_COLOR_17='\033[38;5;75m'
+OSUS_COLOR_18='\033[38;5;65m'
+OSUS_COLOR_19='\033[38;5;55m'
+OSUS_COLOR_20='\033[38;5;45m'
+OSUS_COLOR_21='\033[38;5;35m'
+OSUS_COLOR_22='\033[38;5;25m'
+OSUS_COLOR_23='\033[38;5;15m'
+OSUS_COLOR_24='\033[38;5;5m'
 
 # === Arguments ===
 ACTION="PROCESS"
@@ -103,6 +129,29 @@ fi
 # size limit:)
 MAX_SIZE_BYTES=$(awk "BEGIN {printf \"%.0f\", $MAX_SIZE_MB * 1024 * 1024}")
 
+
+# clear terminal bwa
+csh() {
+    sleep $SCLEAR_TIME
+    clear
+}
+
+# New line
+nline() {
+    echo -e "\n"
+}
+
+# Separators :3
+# Reset
+sepp_r() {
+    echo -e "${OSUS_RESET}---------------------------------------------"
+}
+
+# Pink
+sepp_p() {
+    echo -e "${OSUS_PINK}---------------------------------------------${OSUS_RESET}"
+}
+
 cduplicate() {
     local filename="$1"
     local dest="$2"
@@ -145,10 +194,10 @@ gaudiof() {
 }
 
 if [ "$ACTION" = "LIST" ]; then
-    echo -e "${OSUS_PINK}Scanning for available songs in: $SONGS_DIR${OSUS_RESET}"
+    echo -e "${OSUS_RESET}Scanning for available songs in:${OSUS_PINK} $SONGS_DIR"
     echo -e "Limit: ${MAX_SIZE_MB}MB (${MAX_SIZE_BYTES} bytes)"
     log_msg "INFO" "Scanning $SONGS_DIR with limit ${MAX_SIZE_MB}MB"
-    echo "---------------------------------------------"
+    sepp_r
     
     foundc=0
     for song_dir in "$SONGS_DIR"/*/; do
@@ -196,26 +245,28 @@ if [ "$ACTION" = "LIST" ]; then
             log_msg "ERROR" ".osu file or AudioFilename: $(basename "$song_dir")"
         fi
     done
-    echo "---------------------------------------------"
-    echo -e "Total available files: ${OSUS_PINK}$foundc${OSUS_RESET}"
+    sepp_p
+    echo -e "Total available files: ${OSUS_PINK}[$foundc]${OSUS_RESET}"
     log_msg "INFO" "$foundc files found"
     exit 0
 fi
 
 mkdir -p "$OUTPUT_DIR"
 
-clear
-echo -e "${OSUS_PINK}osus!${OSUS_RESET}droid - Song extctractor"
-echo -e "${OSUS_PINK}by ${OSUS_RESET}github.com/${GITHUB_LINK}"
-sleep 5
-echo -e "\n\n\n"
+csh
+echo -e "${OSUS_PINK}OSUS!${OSUS_RESET}droid -${OSUS_COLOR_3} Song extractor"
+echo -e "${OSUS_PINK}by ${OSUS_COLOR_10}github.com/${GITHUB_LINK}"
+csh
+sepp_p
 echo -e "${OSUS_PINK}Directory:${OSUS_RESET} $SONGS_DIR"
 echo -e "${OSUS_PINK}Output:${OSUS_RESET} $OUTPUT_DIR"
-echo -e "${OSUS_PINK}SizeLimit:${OSUS_RESET} ${MAX_SIZE_MB}mb - ${MAX_SIZE_BYTES}byte"
+echo -e "${OSUS_PINK}SizeLimit:${OSUS_RESET} ${MAX_SIZE_MB}MB - ${MAX_SIZE_BYTES}byte"
+nline
 echo -e "${OSUS_PINK}Mode:${OSUS_RESET} $([ "$SAFE_MODE" = true ] && echo 'SAFE' || echo 'UNSAFE')"
-echo "---------------------------------------------"
 
-log_msg "INFO" "SONGS_DIR=$SONGS_DIR, OUTPUT_DIR=$OUTPUT_DIR, MAX_SIZE=${MAX_SIZE_MB}MB, SAFE_MODE=$SAFE_MODE"
+log_msg "INFO" "SONGS_DIR: $SONGS_DIR, OUTPUT_DIR: $OUTPUT_DIR, MAX_SIZE: ${MAX_SIZE_MB}MB, SAFE_MODE: $SAFE_MODE"
+csh
+sepp_r
 
 foundc=0
 total=0
@@ -257,7 +308,9 @@ for song_dir in "$SONGS_DIR"/*/; do
                 if [ "$SAFE_MODE" = true ]; then
                     cp "$audio_file" "$dest_path"
                 else
-                    mv "$audio_file" "$dest_path"
+                    new_filename="${folder_name}"
+                    dest_path="${OUTPUT_DIR}/${new_filename}"
+                    mv "$SONGS_DIR/$folder_name" "$dest_path"
                 fi
 
                 if [ $? -eq 0 ]; then
@@ -289,10 +342,14 @@ for song_dir in "$SONGS_DIR"/*/; do
     fi
 done
 
-echo "---------------------------------------------"
-echo -e "Total found maps: ${OSUS_PINK}$total${OSUS_RESET}"
-echo -e "Songs Count: ${OSUS_PINK}$foundc${OSUS_RESET}"
-echo -e "Skipped/Duplicates/Suslares: ${OSUS_PINK}$skipped / $duplicates / $suslare${OSUS_RESET}"
-echo -e "Errors: ${OSUS_PINK}$errors${OSUS_RESET}"
+csh
+sepp_r
+echo -e "Total found maps: ${OSUS_PINK}[$total]${OSUS_RESET}"
+echo -e "Songs Count: ${OSUS_PINK}[$foundc]${OSUS_RESET}"
+echo -e "Skipped: ${OSUS_PINK}[$skipped]${OSUS_RESET}"
+echo -e "Suslares: ${OSUS_PINK}[$suslare]${OSUS_RESET}"
+echo -e "Duplicates: ${OSUS_PINK}[$duplicates]${OSUS_RESET}"
+echo -e "Errors: ${OSUS_PINK}[$errors]${OSUS_RESET}"
+sepp_p
 
-log_msg "INFO" "total=$total, foundc=$foundc, skipped=$skipped, dup=$duplicates, sus=$suslare, errors=$errors"
+log_msg "INFO" "total: $total, found: $foundc, skipped: $skipped, dup: $duplicates, sus: $suslare, errors: $errors"

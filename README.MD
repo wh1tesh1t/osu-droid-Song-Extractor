@@ -9,11 +9,12 @@ git clone https://github.com/wh1tesh1t/osu-droid-Song-Extractor
 ```
 
 ```bash
-# config from osus.sh
+# Config
 GITHUB_LINK="wh1tesh1t"
 SONGS_DIR="/storage/emulated/0/osu!droid/Songs"
 OUTPUT_DIR="/storage/emulated/0/osu!droid_songs"
 MAX_SIZE_MB=35.0 # No need desc <_>
+SCLEAR_TIME=1
 SAFE_MODE=true # Enable/Disable safe mode (UNSAFE DELETE FILES FROM SONGS_DIR)
 SHOW_ALL=false # Better dont touch it:)
 LOG_FILE="osus.log"
@@ -26,8 +27,10 @@ LOG_FILE="osus.log"
 # -d — $SONGS_DIR
 # -o — $OUTPUT_DIR
 # -s — Sets file size limit $MAX_SIZE_MB
-# -sf — Enable/Disable SAFE_MODE req dont touch it, only for pros (coz he deleting files from $SONGS_DIR)
+# -sf — Enable/Disable SAFE_MODE req dont touch it, only for pros (coz he delete files from $SONGS_DIR)
 ```
+
+# FAQ
 
 ## Before run the script
 Update termux packages:
@@ -40,7 +43,28 @@ Enable storage:
 termux-setup-storage
 ```
 
-## Run
+## How to run script?
+Go to directory:
+```bash
+cd osu-droid-Song-Extractor/
+```
+
+Default run:
 ```bash
 bash osus.sh
+```
+
+Scan directory for available songs:
+```bash
+bash osus.sh -ls
+```
+
+## How to open log file?
+Downloading nano:
+```bash
+pkg install nano -y
+```
+After downloading run this command:
+```bash
+nano YOUR_LOG_NAME.log # Default is osus.log
 ```
